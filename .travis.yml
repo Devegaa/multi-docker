@@ -1,0 +1,40 @@
+sudo: required
+services:
+  - docker
+
+before_install:
+  - docker build -t micheloostinga/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true micheloostinga/react-test npm test
+
+after_success:
+  - docker build -t micheloostinga/multi-client ./client
+  - docker build -t micheloostinga/multi-nginx ./nginx
+  - docker build -t micheloostinga/multi-server ./server
+  - docker build -t micheloostinga/multi-worker ./worker
+  # Log in to the Docker CLI (See below comment *)
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to Docker Hub
+  - docker push micheloostinga/multi-client
+  - docker push micheloostinga/multi-nginx
+  - docker push micheloostinga/multi-server
+  - docker push micheloostinga/multi-worker
+
+# * Rather than use your login password in Travis CI, you can use access tokens from docker hub. This way you can revoke the key if it's compromised and can keep your password safe. 
+# See https://docs.docker.com/docker-hub/access-tokens/
+
+# 1. Go to hub.docker.com  and login
+
+# 2. At the top right, click on your profile -> account settings
+
+# 3. Navigate to "Security"
+
+# 4. Under access tokens, click "New Access Token"
+
+# 5. Enter a name such as "Travis CI" and click "Create"
+
+# 6. Copy the access token to the clipboard and use this as your "DOCKER_PASSWORD" environment variable instead of your account password.
+
+# 7. This should be passed in the same way as in the video, i.e..:
+#   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
